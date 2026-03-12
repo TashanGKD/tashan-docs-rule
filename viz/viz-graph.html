@@ -525,6 +525,7 @@ document.getElementById('info-panel').addEventListener('click',e=>e.stopPropagat
 ══════════════════════════════════════════════════ */
 function showInfoPanel(id){
   const panel=document.getElementById('info-panel');
+  try{
   const layer=NODE_MAP[id]?.layer;
   const nodeData=(TPAG_DATA.nodes[layer]||[]).find(n=>n.id===id);
   if(!nodeData)return;
@@ -533,9 +534,10 @@ function showInfoPanel(id){
   document.getElementById('ip-id').textContent=id;
   document.getElementById('ip-id').style.background=col+'88';
   document.getElementById('ip-layer').textContent=LAYER_NAMES[layer]||'';
-  document.getElementById('ip-zh').textContent=nodeData.label||id;
+  const ipZh=document.getElementById('ip-zh');
+  ipZh.textContent=nodeData.label||id;
+  ipZh.style.color=COL2[layer];
   document.getElementById('ip-en').textContent=typeof EN_NAMES!=='undefined'?EN_NAMES[id]||'':'';
-  document.getElementById('ip-name-zh').style.color=COL2[layer];
 
   const body=document.getElementById('ip-body');
   body.innerHTML='';
@@ -620,6 +622,11 @@ function showInfoPanel(id){
   body.appendChild(sEdge);
 
   panel.classList.add('show');
+  }catch(err){
+    // 安全兜底：即使内容渲染出错，也确保面板可见
+    console.error('[showInfoPanel] error for',id,err);
+    panel.classList.add('show');
+  }
 }
 
 /* ══════════════════════════════════════════════════
