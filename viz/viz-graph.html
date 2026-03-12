@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>T-PA-G · 有向关系图谱</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;background:#02020c;font-family:'Noto Sans SC',sans-serif;}
+.topbar{
+  position:fixed;top:0;left:0;right:0;height:46px;z-index:200;
+  background:rgba(2,2,12,.92);backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(255,255,255,.06);
+  display:flex;align-items:center;padding:0 16px;gap:10px;
+}
+.tb-title{font-size:.85rem;font-weight:700;color:#dedad6;}
+.tb-tag{font-size:.65rem;color:#7e7c82;padding:2px 7px;border-radius:8px;background:rgba(255,255,255,.06);}
+.tb-hint{font-size:.67rem;color:#4e4c52;margin-left:auto;}
+.tb-back{font-size:.7rem;padding:4px 10px;border:1px solid rgba(255,255,255,.12);border-radius:5px;color:#7e7c82;text-decoration:none;transition:.15s;}
+.tb-back:hover{color:#dedad6;border-color:rgba(255,255,255,.3);}
+.canvas{position:fixed;top:46px;left:0;right:0;bottom:0;}
+svg{width:100%;height:100%;}
+
+/* 图例 */
+.legend{
+  position:fixed;bottom:14px;left:50%;transform:translateX(-50%);
+  display:flex;gap:18px;align-items:center;
+  background:rgba(4,4,16,.88);backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.08);border-radius:8px;
+  padding:7px 16px;font-size:.67rem;color:#7e7c82;
+}
+.lg-item{display:flex;align-items:center;gap:5px;}
+.lg-line{height:2px;width:22px;border-radius:1px;}
+
+/* 悬浮说明面板 */
+.info-panel{
+  position:fixed;top:56px;right:14px;
+  width:300px;background:rgba(8,8,20,.92);backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,.08);border-radius:10px;
+  padding:14px 16px;display:none;
+  font-size:.78rem;color:#dedad6;line-height:1.6;
+  max-height:calc(100vh - 80px);overflow-y:auto;
+  z-index:50;
+}
+.info-panel.show{display:block;}
+.info-id{display:inline-block;font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:3px;margin-bottom:7px;}
+.info-name-zh{font-size:.9rem;font-weight:700;margin-bottom:2px;}
+.info-name-en{font-size:.72rem;font-style:italic;color:#7e7c82;margin-bottom:10px;}
+.info-desc{font-size:.74rem;color:rgba(222,218,214,.75);line-height:1.6;margin-bottom:8px;}
+.info-edges-title{font-size:.63rem;font-weight:700;letter-spacing:.06em;color:#4e4c52;text-transform:uppercase;margin-bottom:6px;}
+.info-edge{
+  font-size:.7rem;color:rgba(222,218,214,.7);padding:4px 8px;
+  border-radius:4px;margin-bottom:4px;line-height:1.5;
+  border-left:2px solid rgba(255,255,255,.15);
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <span class="tb-title">T-PA-G · 有向关系图谱</span>
+  <span class="tb-tag">全节点可见 · 悬停激活链路</span>
+  <span class="tb-hint">悬停节点 → 高亮相关节点（放大）+ 连线显示逻辑说明</span>
+  <a class="tb-back" href="index.html">← 三列视图</a>
+</header>
+
+<div class="canvas">
+  <svg id="G" viewBox="0 0 1340 660" preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <!-- 阴影滤镜 -->
+      <filter id="sh" x="-20%" y="-40%" width="140%" height="180%">
+        <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="rgba(0,0,0,.55)" flood-opacity="1"/>
+      </filter>
+      <!-- 高亮阴影（hover 时用） -->
+      <filter id="sh-T" x="-30%" y="-60%" width="160%" height="220%">
+        <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#4a9edd" flood-opacity=".6"/>
+        <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="rgba(0,0,0,.5)" flood-opacity="1"/>
+      </filter>
+      <filter id="sh-PA" x="-30%" y="-60%" width="160%" height="220%">
+        <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#9b6ed9" flood-opacity=".6"/>
+        <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="rgba(0,0,0,.5)" flood-opacity="1"/>
+      </filter>
+      <filter id="sh-G" x="-30%" y="-60%" width="160%" height="220%">
+        <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#48aa76" flood-opacity=".6"/>
+        <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="rgba(0,0,0,.5)" flood-opacity="1"/>
+      </filter>
+      <!-- 箭头（继承描边色） -->
+      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5"
+              markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+        <path d="M 0 1 L 9 5 L 0 9 Z" fill="context-stroke"/>
+      </marker>
+    </defs>
+
+    <!-- ══ 背景区域 ══ -->
+    <!-- T 区 -->
+    <rect x="0" y="0" width="246" height="660" fill="rgba(4,16,34,.7)" rx="0"/>
+    <rect x="0" y="0" width="246" height="660" fill="url(#grad-T)" opacity=".3"/>
+    <defs>
+      <linearGradient id="grad-T" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#4a9edd" stop-opacity=".12"/>
+        <stop offset="100%" stop-color="#4a9edd" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="grad-PA" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#9b6ed9" stop-opacity=".1"/>
+        <stop offset="50%" stop-color="#9b6ed9" stop-opacity=".06"/>
+        <stop offset="100%" stop-color="#9b6ed9" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="grad-G" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#48aa76" stop-opacity=".08"/>
+        <stop offset="100%" stop-color="#48aa76" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <!-- PA 区 -->
+    <rect x="248" y="0" width="274" height="660" fill="rgba(10,5,30,.6)" rx="0"/>
+    <rect x="248" y="0" width="274" height="660" fill="url(#grad-PA)" opacity=".4"/>
+    <!-- G 区 -->
+    <rect x="524" y="0" width="816" height="660" fill="rgba(3,16,12,.65)" rx="0"/>
+    <rect x="524" y="0" width="816" height="660" fill="url(#grad-G)" opacity=".4"/>
+
+    <!-- 区分隔线 -->
+    <line x1="246" y1="0" x2="246" y2="660" stroke="rgba(74,158,221,.12)" stroke-width="1"/>
+    <line x1="522" y1="0" x2="522" y2="660" stroke="rgba(155,110,217,.12)" stroke-width="1"/>
+    <!-- G 两子列分隔（虚线） -->
+    <line x1="810" y1="30" x2="810" y2="640" stroke="rgba(72,170,118,.08)" stroke-width="1" stroke-dasharray="4,5"/>
+
+    <!-- 水印大字 -->
+    <text x="10" y="210" font-size="160" font-weight="900" fill="#4a9edd" opacity=".04"
+          font-family="system-ui" letter-spacing="-8">T</text>
+    <text x="255" y="240" font-size="130" font-weight="900" fill="#9b6ed9" opacity=".04"
+          font-family="system-ui" letter-spacing="-6">PA</text>
+    <text x="528" y="200" font-size="120" font-weight="900" fill="#48aa76" opacity=".035"
+          font-family="system-ui" letter-spacing="-5">G</text>
+
+    <!-- 区域标题 -->
+    <text x="123" y="20" text-anchor="middle" font-size="9.5" font-weight="700"
+          fill="#4a9edd" opacity=".7" letter-spacing=".08em" font-family="system-ui">T 层 · 本质目标</text>
+    <text x="385" y="20" text-anchor="middle" font-size="9.5" font-weight="700"
+          fill="#9b6ed9" opacity=".7" letter-spacing=".08em" font-family="system-ui">PA 层 · 抽象公理</text>
+    <text x="665" y="20" text-anchor="middle" font-size="9.5" font-weight="700"
+          fill="#48aa76" opacity=".7" letter-spacing=".08em" font-family="system-ui">G 层（左列：核心串行链）</text>
+    <text x="997" y="20" text-anchor="middle" font-size="9.5" font-weight="700"
+          fill="#48aa76" opacity=".7" letter-spacing=".08em" font-family="system-ui">G 层（右列：并行 + 特化 + 工程）</text>
+
+    <!-- ══ 边（先绘，节点在上方） ══ -->
+    <g id="edge-g"></g>
+    <!-- 边标签（hover 时显示） -->
+    <g id="label-g"></g>
+    <!-- ══ 节点 ══ -->
+    <g id="node-g"></g>
+  </svg>
+</div>
+
+<!-- 图例 -->
+<div class="legend">
+  <div class="lg-item"><div class="lg-line" style="background:rgba(74,158,221,.7)"></div><span>T→PA（公理化）</span></div>
+  <div class="lg-item"><div class="lg-line" style="background:rgba(155,110,217,.7)"></div><span>PA→G（具体化）</span></div>
+  <div class="lg-item"><div class="lg-line" style="background:rgba(74,158,221,.5);border-top:1px dashed rgba(74,158,221,.6)"></div><span>T 层内依赖</span></div>
+  <div class="lg-item"><div class="lg-line" style="background:rgba(155,110,217,.5);border-top:1px dashed rgba(155,110,217,.6)"></div><span>PA 互补对</span></div>
+  <div class="lg-item"><div class="lg-line" style="background:rgba(72,170,118,.5);border-top:1px dashed rgba(72,170,118,.6)"></div><span>G 层内依赖</span></div>
+</div>
+
+<!-- 悬浮信息面板 -->
+<div class="info-panel" id="info-panel">
+  <span id="ip-id" class="info-id"></span>
+  <div id="ip-zh" class="info-name-zh"></div>
+  <div id="ip-en" class="info-name-en"></div>
+  <div id="ip-desc" class="info-desc"></div>
+  <div class="info-edges-title">相关连线逻辑</div>
+  <div id="ip-edges"></div>
+</div>
+
+<script src="data.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════
+   节点定义（SVG 坐标，viewBox 0 0 1340 660）
+   每个节点：x,y = 左上角; w=195, h=36
+══════════════════════════════════════════════════════ */
+const NW = 195, NH = 36;
+
+const NODE_DEFS = [
+  // T 层 (x=26)
+  {id:'T1', layer:'T', x:26, y:48},
+  {id:'T2', layer:'T', x:26, y:174},
+  {id:'T3', layer:'T', x:26, y:302},
+  {id:'T4', layer:'T', x:26, y:430},
+  {id:'T5', layer:'T', x:26, y:534},
+  // PA 层 (x=258)
+  {id:'PA1',layer:'PA',x:258,y:36},
+  {id:'PA2',layer:'PA',x:258,y:106},
+  {id:'PA3',layer:'PA',x:258,y:176},
+  {id:'PA4',layer:'PA',x:258,y:246},
+  {id:'PA5',layer:'PA',x:258,y:316},
+  {id:'PA6',layer:'PA',x:258,y:386},
+  {id:'PA7',layer:'PA',x:258,y:456},
+  {id:'PA8',layer:'PA',x:258,y:526},
+  {id:'PA9',layer:'PA',x:258,y:596},
+  // G 层左列（核心串行链，x=530）
+  {id:'G0', layer:'G', x:530,y:36},
+  {id:'G1', layer:'G', x:530,y:148},
+  {id:'G2', layer:'G', x:530,y:260},
+  {id:'G3', layer:'G', x:530,y:372},
+  {id:'G4', layer:'G', x:530,y:484},
+  // G 层右列（并行+特化+工程，x=820）
+  {id:'G5', layer:'G', x:820,y:36},
+  {id:'G6', layer:'G', x:820,y:170},
+  {id:'G7', layer:'G', x:820,y:322},
+  {id:'G8', layer:'G', x:820,y:474}
+];
+
+// 节点查找
+const NODE_MAP = {};
+NODE_DEFS.forEach(n=>NODE_MAP[n.id]=n);
+
+// 节点中心
+function cx(n){return n.x + NW/2;}
+function cy(n){return n.y + NH/2;}
+function rx(n){return n.x + NW;}// right edge x
+function lx(n){return n.x;}       // left edge x
+function tx(n,nw){return n.x + (nw||28);}// text start x after badge
+
+const COL = {T:'#4a9edd',PA:'#9b6ed9',G:'#48aa76'};
+const COL2= {T:'#8ccaf0',PA:'#caa8f5',G:'#7ecfa0'};
+
+/* ══════════════════════════════════════════════════════
+   SVG 工具
+══════════════════════════════════════════════════════ */
+const SVG_NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs){
+  const e = document.createElementNS(SVG_NS, tag);
+  for(const [k,v] of Object.entries(attrs||{})) e.setAttribute(k,v);
+  return e;
+}
+function txt(content, attrs){
+  const t = el('text', attrs);
+  t.textContent = content;
+  return t;
+}
+
+/* ══════════════════════════════════════════════════════
+   渲染节点
+══════════════════════════════════════════════════════ */
+function renderNodes(){
+  const g = document.getElementById('node-g');
+  NODE_DEFS.forEach(n=>{
+    const BW = n.layer==='PA' ? 34 : 28; // badge width
+    const col = COL[n.layer];
+    const col2= COL2[n.layer];
+    const zhName = (typeof EN_NAMES!=='undefined') ? (TPAG_DATA.nodes[n.layer]?.find(x=>x.id===n.id)?.label?.replace(/^[A-Z0-9]+ /,'') || n.id) : n.id;
+    const enName = (typeof EN_NAMES!=='undefined') ? (EN_NAMES[n.id]||'') : '';
+    // Truncate
+    const zhShort = zhName.length>10 ? zhName.slice(0,9)+'…' : zhName;
+    const enShort = enName.length>22 ? enName.slice(0,21)+'…' : enName;
+
+    const gg = el('g', {'class':'node-g','data-id':n.id,'data-layer':n.layer,
+      'data-cx':cx(n),'data-cy':cy(n)});
+    gg.style.cursor='pointer';
+
+    // Outer rect (main card)
+    const r = el('rect',{x:n.x,y:n.y,width:NW,height:NH,rx:5,
+      fill:col+'14',stroke:col+'55','stroke-width':1.5,
+      filter:'url(#sh)','class':'node-rect'});
+    gg.appendChild(r);
+
+    // Badge rect (left colored strip)
+    const bRect = el('rect',{x:n.x,y:n.y,width:BW,height:NH,rx:5,
+      fill:col+'80','class':'node-badge'});
+    const bSquare = el('rect',{x:n.x+BW/2,y:n.y,width:BW/2,height:NH,
+      fill:col+'80'});
+    gg.appendChild(bRect);
+    gg.appendChild(bSquare);
+
+    // Badge text
+    gg.appendChild(txt(n.id,{x:n.x+BW/2,y:n.y+NH/2+1,
+      'text-anchor':'middle','dominant-baseline':'middle',
+      fill:'#fff','font-size':BW>30?8:9,'font-weight':700,
+      'font-family':'JetBrains Mono, monospace'}));
+
+    // Chinese name
+    gg.appendChild(txt(zhShort,{x:n.x+BW+7,y:n.y+14,
+      fill:col2,'font-size':10.5,'font-weight':700,
+      'font-family':'Noto Sans SC, sans-serif'}));
+
+    // English name
+    gg.appendChild(txt(enShort,{x:n.x+BW+7,y:n.y+27,
+      fill:col+'88','font-size':8,'font-style':'italic',
+      'font-family':'system-ui, sans-serif'}));
+
+    // Hover events
+    gg.addEventListener('mouseenter',()=>activate(n.id));
+    gg.addEventListener('mouseleave',()=>deactivate());
+
+    g.appendChild(gg);
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   边路径计算
+══════════════════════════════════════════════════════ */
+function edgePath(e){
+  const f = NODE_MAP[e.from], t = NODE_MAP[e.to];
+  if(!f||!t) return null;
+  const fcx=cx(f),fcy=cy(f),tcx=cx(t),tcy=cy(t);
+  const frx=rx(f),flx=lx(f),tlx=lx(t),trx=rx(t);
+
+  let d, lx_=0, ly_=0;
+
+  if(e.type==='T2PA'){
+    // Right of T → Left of PA, S-curve
+    const x1=frx+2, y1=fcy, x2=tlx-7, y2=tcy;
+    const mx=(x1+x2)/2;
+    d=`M${x1} ${y1} C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`;
+    lx_=mx; ly_=(y1+y2)/2;
+
+  } else if(e.type==='PA2G'){
+    // Right of PA → Left of G, S-curve
+    const x1=frx+2, y1=fcy, x2=tlx-7, y2=tcy;
+    const mx=(x1+x2)/2;
+    d=`M${x1} ${y1} C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`;
+    lx_=mx; ly_=(y1+y2)/2;
+
+  } else if(e.type==='T_int'){
+    // Left-side arc within T zone
+    const x1=flx-2, y1=fcy, x2=tlx-2, y2=tcy;
+    const dy=Math.abs(y2-y1);
+    const off = dy>200 ? -22 : -13;
+    d=`M${x1} ${y1} C${x1+off} ${y1} ${x2+off} ${y2} ${x2} ${y2}`;
+    lx_=x1+off-8; ly_=(y1+y2)/2;
+
+  } else if(e.type==='PA_pair'){
+    // Within PA zone: forward (downward) → right arc; backward (upward) → left arc
+    if(tcy>fcy){
+      // Forward: right arc
+      const x1=frx+2,y1=fcy, x2=trx+2,y2=tcy;
+      const off=Math.min(28, Math.abs(y2-y1)*0.35);
+      d=`M${x1} ${y1} C${x1+off} ${y1} ${x2+off} ${y2} ${x2} ${y2}`;
+      lx_=x1+off+6; ly_=(y1+y2)/2;
+    } else {
+      // Backward: left arc
+      const x1=flx-2,y1=fcy, x2=tlx-2,y2=tcy;
+      const off=Math.min(28, Math.abs(y2-y1)*0.35);
+      d=`M${x1} ${y1} C${x1-off} ${y1} ${x2-off} ${y2} ${x2} ${y2}`;
+      lx_=x1-off-6; ly_=(y1+y2)/2;
+    }
+
+  } else if(e.type==='G_int'){
+    const fInRight=fcx>800, tInRight=tcx>800;
+    if(!fInRight && !tInRight){
+      // G-left serial chain: bottom→top vertical bezier
+      const y1=f.y+NH+2, y2=t.y-2;
+      const my=(y1+y2)/2;
+      d=`M${fcx} ${y1} C${fcx} ${my} ${tcx} ${my} ${tcx} ${y2}`;
+      lx_=(fcx+tcx)/2; ly_=my;
+    } else if(fInRight && tInRight){
+      // G-right vertical bezier
+      const y1=f.y+NH+2, y2=t.y-2;
+      const my=(y1+y2)/2;
+      d=`M${fcx} ${y1} C${fcx} ${my} ${tcx} ${my} ${tcx} ${y2}`;
+      lx_=(fcx+tcx)/2; ly_=my;
+    } else if(!fInRight && tInRight){
+      // G-left → G-right horizontal
+      const x1=frx+2, y1=fcy, x2=tlx-7, y2=tcy;
+      const mx=(x1+x2)/2;
+      d=`M${x1} ${y1} C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`;
+      lx_=mx; ly_=(y1+y2)/2;
+    } else {
+      // G-right → G-left (reverse, arc)
+      const x1=flx-2, y1=fcy, x2=trx+2, y2=tcy;
+      const mx=(x1+x2)/2;
+      d=`M${x1} ${y1} C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`;
+      lx_=mx; ly_=(y1+y2)/2;
+    }
+  }
+
+  return d ? {d, lx:lx_, ly:ly_} : null;
+}
+
+/* ══════════════════════════════════════════════════════
+   渲染边
+══════════════════════════════════════════════════════ */
+const TYPE_COLOR={
+  T_int:'rgba(74,158,221,ALPHA)',
+  T2PA: 'rgba(74,158,221,ALPHA)',
+  PA_pair:'rgba(155,110,217,ALPHA)',
+  PA2G: 'rgba(155,110,217,ALPHA)',
+  G_int:'rgba(72,170,118,ALPHA)'
+};
+const TYPE_DASH={T_int:'5,4',PA_pair:'4,4',G_int:'5,4'};
+
+function edgeColor(type, alpha){
+  return (TYPE_COLOR[type]||'rgba(200,200,200,ALPHA)').replace('ALPHA', alpha);
+}
+
+const EDGE_ELS={}, LABEL_ELS={};
+
+function renderEdges(){
+  const eg = document.getElementById('edge-g');
+  const lg = document.getElementById('label-g');
+  const EDGES = typeof GRAPH_EDGES!=='undefined' ? GRAPH_EDGES : [];
+
+  EDGES.forEach((e,i)=>{
+    const p = edgePath(e);
+    if(!p) return;
+
+    const key = e.from+'→'+e.to;
+    const dash = TYPE_DASH[e.type];
+    const isDashed = !!dash;
+
+    // Edge path element
+    const path = el('path',{
+      d:p.d, fill:'none',
+      stroke: edgeColor(e.type, isDashed ? 0.12 : 0.14),
+      'stroke-width': isDashed ? 1 : 1.3,
+      'marker-end':'url(#arr)',
+      'class':'epath'
+    });
+    if(dash) path.setAttribute('stroke-dasharray', dash);
+    path.setAttribute('data-key', key);
+    eg.appendChild(path);
+    EDGE_ELS[key] = path;
+
+    // Edge label group (hidden by default)
+    const maxLen = 58;
+    const labelTxt = e.label.length > maxLen ? e.label.slice(0,maxLen-1)+'…' : e.label;
+    const tw = Math.min(labelTxt.length * 4.8 + 14, 280);
+
+    const lg2 = el('g',{'class':'elabel','data-key':key});
+    lg2.setAttribute('transform',`translate(${p.lx},${p.ly})`);
+    lg2.style.display='none';
+
+    const lb = el('rect',{x:-tw/2,y:-9,width:tw,height:16,rx:3,
+      fill:'rgba(6,6,18,.94)',stroke:'rgba(255,255,255,.14)','stroke-width':.5});
+    const lt = el('text',{'text-anchor':'middle',y:2,
+      fill:'rgba(215,211,207,.88)','font-size':7.5,
+      'font-family':'system-ui, sans-serif'});
+    lt.textContent = labelTxt;
+
+    lg2.appendChild(lb);
+    lg2.appendChild(lt);
+    lg.appendChild(lg2);
+    LABEL_ELS[key] = lg2;
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   Hover 交互
+══════════════════════════════════════════════════════ */
+const EDGES_LIST = typeof GRAPH_EDGES !== 'undefined' ? GRAPH_EDGES : [];
+
+function getNeighbors(id){
+  const s = new Set([id]);
+  EDGES_LIST.forEach(e=>{
+    if(e.from===id) s.add(e.to);
+    if(e.to===id) s.add(e.from);
+  });
+  return s;
+}
+function getConnEdges(id){
+  const s = new Set();
+  EDGES_LIST.forEach(e=>{
+    if(e.from===id||e.to===id) s.add(e.from+'→'+e.to);
+  });
+  return s;
+}
+
+const SCALE = 1.1;
+function scaleNode(el, cx2, cy2, s){
+  if(s===1){ el.removeAttribute('transform'); return; }
+  const tx2 = cx2*(1-s), ty2=cy2*(1-s);
+  el.setAttribute('transform',`translate(${tx2} ${ty2}) scale(${s})`);
+}
+
+function activate(id){
+  const neighbors = getNeighbors(id);
+  const connEdges = getConnEdges(id);
+  const node = NODE_MAP[id];
+  if(!node) return;
+
+  // 节点高亮
+  document.querySelectorAll('.node-g').forEach(g=>{
+    const gid = g.getAttribute('data-id');
+    const layer = g.getAttribute('data-layer');
+    const filt = `url(#sh-${layer})`;
+    if(gid===id){
+      scaleNode(g, parseFloat(g.getAttribute('data-cx')), parseFloat(g.getAttribute('data-cy')), SCALE);
+      g.querySelector('.node-rect').setAttribute('filter', filt);
+      g.querySelector('.node-rect').setAttribute('stroke', COL[layer]+'cc');
+      g.style.opacity='1';
+    } else if(neighbors.has(gid)){
+      g.querySelector('.node-rect').setAttribute('stroke', COL[layer]+'88');
+      g.style.opacity='1';
+    } else {
+      g.style.opacity='0.12';
+    }
+  });
+
+  // 边高亮
+  Object.entries(EDGE_ELS).forEach(([key,p])=>{
+    if(connEdges.has(key)){
+      const e = EDGES_LIST.find(x=>x.from+'→'+x.to===key);
+      const type = e?.type||'T2PA';
+      p.setAttribute('stroke', edgeColor(type, 0.88));
+      p.setAttribute('stroke-width', '2.2');
+      p.removeAttribute('stroke-dasharray');
+      p.setAttribute('marker-end','url(#arr)');
+    } else {
+      p.setAttribute('stroke','rgba(255,255,255,.03)');
+      p.setAttribute('stroke-width','1');
+    }
+  });
+
+  // 显示边标签
+  Object.entries(LABEL_ELS).forEach(([key,lg])=>{
+    lg.style.display = connEdges.has(key) ? 'block' : 'none';
+  });
+
+  // 信息面板
+  showInfoPanel(id, neighbors, connEdges);
+}
+
+function deactivate(){
+  document.querySelectorAll('.node-g').forEach(g=>{
+    scaleNode(g,0,0,1);
+    const layer = g.getAttribute('data-layer');
+    g.querySelector('.node-rect').setAttribute('filter','url(#sh)');
+    g.querySelector('.node-rect').setAttribute('stroke', COL[layer]+'55');
+    g.style.opacity='1';
+  });
+  Object.entries(EDGE_ELS).forEach(([key,p])=>{
+    const e=EDGES_LIST.find(x=>x.from+'→'+x.to===key);
+    const type=e?.type||'T2PA';
+    const dash=TYPE_DASH[type];
+    const isDashed=!!dash;
+    p.setAttribute('stroke', edgeColor(type, isDashed?0.12:0.14));
+    p.setAttribute('stroke-width', isDashed?'1':'1.3');
+    if(dash) p.setAttribute('stroke-dasharray',dash); else p.removeAttribute('stroke-dasharray');
+  });
+  Object.values(LABEL_ELS).forEach(lg=>lg.style.display='none');
+  document.getElementById('info-panel').classList.remove('show');
+}
+
+/* ══════════════════════════════════════════════════════
+   信息面板
+══════════════════════════════════════════════════════ */
+function showInfoPanel(id, neighbors, connEdges){
+  const panel = document.getElementById('info-panel');
+  const node = TPAG_DATA?.nodes?.[NODE_MAP[id]?.layer]?.find(n=>n.id===id);
+  if(!node) return;
+
+  const idEl = document.getElementById('ip-id');
+  const layer = NODE_MAP[id].layer;
+  idEl.textContent = id;
+  idEl.style.background = COL[layer]+'88';
+  idEl.style.color = '#fff';
+
+  document.getElementById('ip-zh').textContent = node.label||id;
+  document.getElementById('ip-en').textContent = typeof EN_NAMES!=='undefined' ? (EN_NAMES[id]||'') : '';
+  document.getElementById('ip-desc').textContent = (node.short||'').slice(0,120);
+
+  const edgesEl = document.getElementById('ip-edges');
+  edgesEl.innerHTML='';
+  EDGES_LIST.filter(e=>e.from===id||e.to===id).forEach(e=>{
+    const other = e.from===id ? e.to : e.from;
+    const dir = e.from===id ? '→' : '←';
+    const edgeDiv = document.createElement('div');
+    edgeDiv.className='info-edge';
+    edgeDiv.style.borderLeftColor = COL[layer]+'66';
+    edgeDiv.textContent = `${dir} ${other}: ${e.label}`;
+    edgesEl.appendChild(edgeDiv);
+  });
+
+  panel.classList.add('show');
+}
+
+/* ══════════════════════════════════════════════════════
+   初始化
+══════════════════════════════════════════════════════ */
+renderNodes();
+renderEdges();
+</script>
+</body>
+</html>
