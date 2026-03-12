@@ -521,7 +521,73 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&pinnedId){pinnedId=
 document.getElementById('info-panel').addEventListener('click',e=>e.stopPropagation());
 
 /* ══════════════════════════════════════════════════
-   详情面板（完整内容）
+   面板内容数据（按元逻辑说明书风格）
+══════════════════════════════════════════════════ */
+const NODE_Q={   // 回答的问题
+  T1:'系统能不能被描述出来？',
+  T2:'系统能不能始终保持在有意义的状态？',
+  T3:'系统能不能永远运行下去（在理想条件下）？',
+  T4:'系统的运行有没有语义进展——还是只是在空转？',
+  T5:'主体与环境之间有没有真实的双向交互？',
+  PA1:'系统结构是否清晰地区分了「谁在行动」和「谁被作用」？',
+  PA2:'所有可能无限增长的状态量，有没有上限？',
+  PA3:'关键资源耗尽后，能不能回来？',
+  PA4:'任意时刻，系统还能再次被触发演化吗？',
+  PA5:'每个状态分量，只有一个负责写它的权威者吗？',
+  PA6:'每一个「待处理效应」，最终都会有一个明确结局吗？',
+  PA7:'有权接收某信息的主体，一定能收到它吗？',
+  PA8:'系统是真的在推进，还是只是在原地空转？',
+  PA9:'每个主体既能感知环境，也能真实地影响环境吗？'
+};
+
+const NODE_WHY={  // 为什么必要（来自元逻辑说明书）
+  T1:'如果连系统有什么、状态是什么、如何演化都无法表达，那么「运行」「正确性」「稳定性」这些概念都失去着落。',
+  T2:'即使系统在运行，若状态自相矛盾，后续所有演化结果都不可信。T2 失效不是「跑得慢」，而是「跑出来的结果无意义」。',
+  T3:'一个在有限时间内必然停机的系统，只是短程过程，不是长期自治系统。',
+  T4:'一个系统可以满足 T3（一直在运行）但违反 T4——永远在几个无意义状态间循环。这种「假活性」比停机更难发现、更难诊断。',
+  T5:'若主体与环境之间没有真实耦合，「多智能体—世界系统」只是多个孤立状态机加一个空壳环境。',
+  PA1:'T1 要求系统可形式化→必须有可区分的主体/环境结构。T5 要求真实耦合→必须知道「谁在行动、谁被作用」。PA1 是这两个目标共同的基础。',
+  PA2:'T2 要求状态在合法域内→无界状态必然越界。T3 要求无限演化→无界增长在有限时间内导致停机。PA2 与 PA3 互补：PA2 防上溢，PA3 防下溢，两者合起来才能保证资源的长时健康。',
+  PA3:'PA2 只保证有上界，但不保证资源不单调下降到耗尽。PA3 专门保证「从任意低状态都能恢复」——没有它，任何消耗型动作都趋向永久停机。恢复路径必须在实际轨迹中可达，不能只在理论上存在。',
+  PA4:'T3 要求持续演化→系统不能永久失去演化机会。PA4 只保证「有机会演化」，不要求「机会有意义」——那是 PA8 的职责。PA4 满足但 PA8 缺失时：agent 被不断唤醒，但每次都在空转。',
+  PA5:'T1 要求可形式化→状态必须有唯一权威来源才能追溯。T2 要求合法性→多写者竞争导致状态污染和矛盾。PA5 是所有「写隔离」要求的公理来源。',
+  PA6:'T2 要求合法性→永久悬挂的效应使系统状态不确定。T3 要求持续演化→无终局的效应无限积压，最终耗尽资源。PA6 统一覆盖所有类型的 effect：通知、义务、事件、动作、消息。',
+  PA7:'T5 要求有效耦合（观察侧）→若合法应接收信息的主体永远接收不到，「主体受环境影响」这件事就不成立。PA7 不要求「立刻到达」，但要求「不能永远到不了」。',
+  PA8:'T4 要求开放演化→必须能定义「什么是进展」、检测「是否在进展」、逃离「无进展循环」。PA8 区分了「真正在推进」（P(s) 净变化）和「形式上在运行」（P(s) 不变）。',
+  PA9:'T5 要求有效耦合，包含两个方向：观察侧（由 PA7 保证）+ 行动侧（由 PA9 保证）。缺 PA7：盲目执行器；缺 PA9：纯被动接收器——两者缺一，T5 都不完整。'
+};
+
+const NODE_CONSQ={  // 若缺失 / 违反后果（一句话）
+  T1:'不会得到「一个运行得差的系统」，而是根本没有系统。',
+  T2:'系统进入非法状态，后续演化结果不可信。',
+  T3:'永久沉默、资源耗尽停机、内部积压溢出、有限时间终止。',
+  T4:'假活性、假稳态、病态循环、形式运行但语义冻结。',
+  T5:'各自自循环的 agent 集合；名义上多主体，而非真实相互作用系统。',
+  PA1:'无法定义 agent、world、耦合；行为方向性无法定义；整个体系失去概念基础。',
+  PA2:'资源枯竭、内部积压爆炸、被历史数据拖死、有限时间内丧失演化能力。',
+  PA3:'任何消耗型动作都趋向永久停机；即使有上界，系统也会在到达下界后卡死。',
+  PA4:'系统即使当前状态合法，也可能永远沉默，变成静态系统。',
+  PA5:'耦合边界消失；行为因果不可追踪；审计无法进行；系统变成不可验证的黑箱互写。',
+  PA6:'系统被历史效应拖死；无法区分哪些效应已完成；通知/义务无限积压。',
+  PA7:'主体与环境解耦；重要事件永远无法影响相应 agent；系统退化为各自自循环的状态机。',
+  PA8:'固定点僵死、周期性空转、假活性——不断触发但无任何语义进展。',
+  PA9:'agent 退化为纯被动接收器（只观察）或盲目执行器（只行动）；真实的多主体—世界系统不存在。'
+};
+
+const G_WHAT={  // G 层各节点核心作用（智能体语境一句话）
+  G0:'整个系统的骨架定义。粒子是谁、本体变量在哪里、谁有权写它——这些必须在设计时钉死，不能靠「约定俗成」。',
+  G1:'所有运行时「硬规则」的集合。无论在哪个演化步骤，这些不变量必须全部成立。违反任何一条，系统进入非法状态，所有输出不可信。',
+  G2:'每步 agent 演化必须走完四个阶段：assemble（组装输入）→ evolve（产生输出）→ emit（发射事件）→ apply（写回状态）。跳过任何一个，演化就不完整。',
+  G3:'系统「长期活着」的保障。调度链不能断、能量必须有恢复路径、记忆和通知必须有界——少任何一条，系统在有限时间内必然停摆。',
+  G4:'系统「活着有意义」的保障。定义什么叫真实进展（P(s) 净变化），追踪上次进展时间，在进展停滞时自动触发逃离——防止义务循环死锁或 LLM 语义空转。',
+  G5:'agent 与世界真实耦合的落地规范。Field（外部交互环境）和 Activity（当前行为方式）必须分开建模，三者共同决定：感知什么、能做什么、如何调度。',
+  G6:'所有状态变更的可信记录体系。任何 durable 变更先写 Event Log 再物化，LLM 必须等 ActionReceipt 确认后才记录「动作成功」——防止记忆与现实分裂（Split-Brain）。',
+  G7:'LLM-based agent 专属的认知连续性保障。memory 是真状态不是缓存；中断时保存 resume_token；返回时校验并恢复上下文。缺失时：agent 每次对话都像「从零开始」。',
+  G8:'在真实计算机环境（故障/延迟/并发/重启）中实现 G0–G7 的工程增强层。删掉 G8 后 G0–G7 的逻辑不坍塌，但实现层会出现 busy-loop、split-brain、时钟偏差等工程病态。'
+};
+
+/* ══════════════════════════════════════════════════
+   详情面板（元逻辑说明书风格）
 ══════════════════════════════════════════════════ */
 function showInfoPanel(id){
   const panel=document.getElementById('info-panel');
@@ -542,56 +608,148 @@ function showInfoPanel(id){
   const body=document.getElementById('ip-body');
   body.innerHTML='';
 
-  function sec(label){const d=document.createElement('div');d.className='ip-sec';const l=document.createElement('div');l.className='ip-sec-label';l.textContent=label;d.appendChild(l);return d;}
+  // ── 工具函数 ──
+  function sec(emoji,label){
+    const d=document.createElement('div');d.className='ip-sec';
+    const l=document.createElement('div');l.className='ip-sec-label';
+    l.textContent=(emoji?emoji+' ':'')+label;
+    d.appendChild(l);return d;
+  }
   function div(){const d=document.createElement('div');d.className='ip-divider';body.appendChild(d);}
+  function txt(text,cls){const d=document.createElement('div');d.className=cls||'ip-text';d.textContent=text;return d;}
+  function viol(text){return txt(text,'ip-viol');}
+  function analogyGrid(list){
+    const g=document.createElement('div');g.className='ip-analogy';
+    list.forEach(a=>{
+      const dm=document.createElement('div');dm.className='ip-analogy-domain';dm.textContent=a.domain;
+      const tx=document.createElement('div');tx.className='ip-analogy-text';tx.textContent=a.text;
+      g.appendChild(dm);g.appendChild(tx);
+    });return g;
+  }
+  function bulletList(items,col){
+    const ul=document.createElement('ul');ul.className='ip-bullets';
+    items.forEach(r=>{const li=document.createElement('li');li.textContent=r;if(col)li.style.setProperty('--bul',col);ul.appendChild(li);});
+    return ul;
+  }
 
-  /* ── T 层 ── */
+  /* ══ T 层 ══ */
   if(layer==='T'){
-    const td=T_DETAIL[id]||{};
+    // 回答的问题
+    const q=NODE_Q[id];
+    if(q){
+      const sq=sec('','回答的问题');
+      const qbox=document.createElement('div');
+      qbox.style.cssText='font-size:.82rem;font-weight:700;color:'+COL2[layer]+';padding:6px 10px;border-radius:5px;background:'+col+'14;border-left:3px solid '+col+'66;line-height:1.6;';
+      qbox.textContent=q;sq.appendChild(qbox);body.appendChild(sq);
+    }
     // 定义
-    const s1=sec('定义 · Definition');
-    const t1=document.createElement('div');t1.className='ip-text';t1.textContent=nodeData.short+'\n'+td.def;
-    s1.appendChild(t1);body.appendChild(s1);
+    div();
+    const sd=sec('📖','定义');sd.appendChild(txt(nodeData.short));body.appendChild(sd);
+
     // 最小要求
-    if(td.reqs){div();const s2=sec('最小要求 · Minimum Requirements');const ul=document.createElement('ul');ul.className='ip-bullets';td.reqs.forEach(r=>{const li=document.createElement('li');li.textContent=r;ul.appendChild(li);});s2.appendChild(ul);body.appendChild(s2);}
+    const td=T_DETAIL[id]||{};
+    if(td.reqs?.length){
+      div();const sr2=sec('✅','最小要求');sr2.appendChild(bulletList(td.reqs));body.appendChild(sr2);
+    }
+
+    // 为什么必要
+    const why=NODE_WHY[id];
+    if(why){div();const sw=sec('💡','为什么必要');sw.appendChild(txt(why));body.appendChild(sw);}
+
     // 违反后果
-    if(td.viol){div();const s3=sec('违反后果 · Violation Consequence');const v=document.createElement('div');v.className='ip-viol';v.textContent=td.viol;s3.appendChild(v);body.appendChild(s3);}
-    // 违反案例（来自 data.js）
-    if(nodeData.violation){div();const s4=sec('⚠ 违反案例（来自规格文档）');const v=document.createElement('div');v.className='ip-viol';v.textContent=nodeData.violation;s4.appendChild(v);body.appendChild(s4);}
-    // 跨域类比
-    if(nodeData.analogies?.length){div();const s5=sec('跨域类比 · Cross-Domain Analogies');const g=document.createElement('div');g.className='ip-analogy';nodeData.analogies.forEach(a=>{const dm=document.createElement('div');dm.className='ip-analogy-domain';dm.textContent=a.domain;const tx=document.createElement('div');tx.className='ip-analogy-text';tx.textContent=a.text;g.appendChild(dm);g.appendChild(tx);});s5.appendChild(g);body.appendChild(s5);}
-  }
+    const cq=NODE_CONSQ[id];
+    if(cq){div();const sc=sec('🔴','违反后果');sc.appendChild(viol(cq));body.appendChild(sc);}
 
-  /* ── PA 层 ── */
-  else if(layer==='PA'){
-    // 服务的 T 目标
-    const tS=[...new Set([...(PA2T[id]||[])])];
-    if(tS.length){const s0=sec('服务的 T 目标');const chips=document.createElement('div');chips.className='ip-serves';tS.forEach(t=>{const c=document.createElement('span');c.className='ip-sc';c.textContent=t;chips.appendChild(c);});s0.appendChild(chips);body.appendChild(s0);}
-    // 公理表述
-    div();const s1=sec('公理表述 · Axiom Statement');const t1=document.createElement('div');t1.className='ip-text';t1.textContent=nodeData.short;s1.appendChild(t1);body.appendChild(s1);
-    // 关键约束（中文）
-    const keys=PA_KEYS[id]||[];
-    if(keys.length){div();const s2=sec('关键约束（来自规格文档）');const ul=document.createElement('ul');ul.className='ip-bullets';keys.forEach(r=>{const li=document.createElement('li');li.textContent=r;ul.appendChild(li);});s2.appendChild(ul);body.appendChild(s2);}
-    // 数学表达
-    if(nodeData.math){div();const s3=sec('数学表达 · Mathematical Expression');const m=document.createElement('div');m.className='ip-mono';m.textContent=nodeData.math;s3.appendChild(m);body.appendChild(s3);}
     // 违反案例
-    if(nodeData.violation){div();const s4=sec('⚠ 违反案例');const v=document.createElement('div');v.className='ip-viol';v.textContent=nodeData.violation;s4.appendChild(v);body.appendChild(s4);}
-    // 类比
-    if(nodeData.analogies?.length){div();const s5=sec('跨域类比 · Cross-Domain Analogies');const g=document.createElement('div');g.className='ip-analogy';nodeData.analogies.forEach(a=>{const dm=document.createElement('div');dm.className='ip-analogy-domain';dm.textContent=a.domain;const tx=document.createElement('div');tx.className='ip-analogy-text';tx.textContent=a.text;g.appendChild(dm);g.appendChild(tx);});s5.appendChild(g);body.appendChild(s5);}
+    if(nodeData.violation){
+      div();const sv=sec('⚠','违反案例（智能体场景）');sv.appendChild(viol(nodeData.violation));body.appendChild(sv);
+    }
+
+    // 跨域类比
+    if(nodeData.analogies?.length){
+      div();const sa=sec('🔗','跨域类比');sa.appendChild(analogyGrid(nodeData.analogies));body.appendChild(sa);
+    }
   }
 
-  /* ── G 层 ── */
+  /* ══ PA 层 ══ */
+  else if(layer==='PA'){
+    // 服务的 T 目标（chip）
+    const tS=[...new Set([...(PA2T[id]||[])])];
+    if(tS.length){
+      const s0=sec('','服务的 T 目标');
+      const chips=document.createElement('div');chips.className='ip-serves';
+      tS.forEach(t=>{const c=document.createElement('span');c.className='ip-sc';c.textContent=t;chips.appendChild(c);});
+      s0.appendChild(chips);body.appendChild(s0);
+    }
+
+    // 回答的问题
+    const q=NODE_Q[id];
+    if(q){
+      div();
+      const sq=sec('','回答的问题');
+      const qbox=document.createElement('div');
+      qbox.style.cssText='font-size:.82rem;font-weight:700;color:'+COL2[layer]+';padding:6px 10px;border-radius:5px;background:'+col+'14;border-left:3px solid '+col+'66;line-height:1.6;';
+      qbox.textContent=q;sq.appendChild(qbox);body.appendChild(sq);
+    }
+
+    // 公理核心表述
+    div();
+    const s1=sec('📖','公理核心表述');s1.appendChild(txt(nodeData.short));body.appendChild(s1);
+
+    // 关键约束
+    const keys=PA_KEYS[id]||[];
+    if(keys.length){div();const s2=sec('✅','关键约束');s2.appendChild(bulletList(keys));body.appendChild(s2);}
+
+    // 为什么必要
+    const why=NODE_WHY[id];
+    if(why){div();const sw=sec('💡','为什么 T 层需要这条公理');sw.appendChild(txt(why));body.appendChild(sw);}
+
+    // 违反后果
+    const cq=NODE_CONSQ[id];
+    if(cq){div();const sc=sec('🔴','若缺失 / 违反后果');sc.appendChild(viol(cq));body.appendChild(sc);}
+
+    // 违反案例
+    if(nodeData.violation){
+      div();const sv=sec('⚠','违反案例（智能体场景）');sv.appendChild(viol(nodeData.violation));body.appendChild(sv);
+    }
+
+    // 数学表达
+    if(nodeData.math){
+      div();const sm=sec('∑','数学表达');sm.appendChild(txt(nodeData.math,'ip-mono'));body.appendChild(sm);
+    }
+
+    // 跨域类比
+    if(nodeData.analogies?.length){
+      div();const sa=sec('🔗','跨域类比');sa.appendChild(analogyGrid(nodeData.analogies));body.appendChild(sa);
+    }
+  }
+
+  /* ══ G 层 ══ */
   else if(layer==='G'){
-    // PA 根源 + T 目标
-    const metaDiv=document.createElement('div');metaDiv.style.display='flex';metaDiv.style.gap='5px';metaDiv.style.flexWrap='wrap';metaDiv.style.marginBottom='4px';
+    // PA 根源 + T 目标 chip
+    const metaDiv=document.createElement('div');
+    metaDiv.style.cssText='display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;';
     (nodeData.paRoots||[]).forEach(p=>{const c=document.createElement('span');c.className='ip-gpc';c.textContent=p;metaDiv.appendChild(c);});
     (nodeData.tTargets||[]).forEach(t=>{const c=document.createElement('span');c.className='ip-gtc';c.textContent='→'+t;metaDiv.appendChild(c);});
     body.appendChild(metaDiv);
-    // 说明
-    const s1=sec('目标说明');const t1=document.createElement('div');t1.className='ip-text';t1.textContent=nodeData.desc||nodeData.short||'';s1.appendChild(t1);body.appendChild(s1);
-    // 全部子要求
+
+    // 核心作用（智能体语境一句话）
+    const gw=G_WHAT[id];
+    if(gw){
+      const sq=sec('','核心作用');
+      const qbox=document.createElement('div');
+      qbox.style.cssText='font-size:.82rem;font-weight:600;color:'+COL2[layer]+';padding:6px 10px;border-radius:5px;background:'+col+'12;border-left:3px solid '+col+'55;line-height:1.6;';
+      qbox.textContent=gw;sq.appendChild(qbox);body.appendChild(sq);
+    }
+
+    // 详细说明（第一段）
+    if(nodeData.desc){
+      div();const s1=sec('📖','目标说明');s1.appendChild(txt(nodeData.desc.split('\n')[0]));body.appendChild(s1);
+    }
+
+    // 具体子要求（完整展开）
     if(nodeData.subReqs?.length){
-      div();const s2=sec(`具体子要求（${nodeData.subReqs.length} 条）`);
+      div();const s2=sec('📋',`具体子要求（${nodeData.subReqs.length} 条）`);
       nodeData.subReqs.forEach(sr=>{
         const card=document.createElement('div');card.className='ip-sr';
         const h=document.createElement('div');h.className='ip-sr-head';
@@ -608,15 +766,15 @@ function showInfoPanel(id){
 
   // 相关连线逻辑
   div();
-  const sEdge=sec('相关连线逻辑');
+  const sEdge=sec('🔀','相关连线逻辑');
   EDGES_LIST.filter(e=>e.from===id||e.to===id).forEach(e=>{
     const other=e.from===id?e.to:e.from;
     const dir=e.from===id?'→':'←';
     const key=e.from+'→'+e.to;
     const zhL=ZH_LABELS[key]||'';
     const edgeDiv=document.createElement('div');edgeDiv.className='ip-edge';
-    edgeDiv.style.borderLeftColor=col+'66';
-    edgeDiv.innerHTML=`<strong>${dir} ${other}</strong>&nbsp;&nbsp;<span style="color:#7e7c82;font-size:.68rem">${zhL}</span>`;
+    edgeDiv.style.borderLeftColor=col+'55';
+    edgeDiv.innerHTML=`<strong style="color:${COL2[layer]}">${dir} ${other}</strong>&nbsp;<span style="color:#7e7c82;font-size:.69rem;display:block;margin-top:1px">${zhL}</span>`;
     sEdge.appendChild(edgeDiv);
   });
   body.appendChild(sEdge);
