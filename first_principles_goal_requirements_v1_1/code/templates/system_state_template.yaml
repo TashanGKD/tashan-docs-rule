@@ -1,0 +1,64 @@
+world:
+  clock: 0.0
+  natural_state: {}
+  interaction_contexts:
+    ctx_001:
+      field:
+        arity: group
+        co_presence: remote
+        synchrony: live
+        lifecycle: persistent
+        task_binding: casual
+        visibility: members_only
+        attention_impact: engaged
+        normative_force: soft
+      participants:
+      - role_001
+      messages: []
+      roles: {}
+      agenda: []
+      obligations: []
+      place_id: null
+      status: open
+agents:
+  role_001:
+    memory:
+      self:
+        name: role_001
+    control:
+      physical_location: null
+      foreground_stack: []
+      current_activity:
+        preset: thinking_deep
+        profile:
+          mode: thinking
+          medium: computer
+          input_openness: mention
+          output_bandwidth: medium
+          interrupt_tolerance: medium
+          energy_profile: consuming
+          mobility: switchable
+        object_ref: null
+        toolset: []
+        writeback_policy: null
+        transition_condition: null
+        reservation_until: null
+        resume_token: null
+      baseline_attention_policy: mention
+      active_key: null
+      next_wakeup: 60.0
+      last_evolved_at: 0.0
+      energy: 80.0
+      mood: null
+    capability:
+      tools: []
+meta:
+  notification_buffer:
+    role_001: []
+  scheduler:
+    pending_wakeups: {}
+  writeback_ledger: []
+  staging_ledger: []
+  resource_leases: {}
+  active_obligations: []
+  event_log: []

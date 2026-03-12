@@ -1,0 +1,361 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FirstPrinciplesSystemState",
+  "type": "object",
+  "required": [
+    "world",
+    "agents",
+    "meta"
+  ],
+  "properties": {
+    "world": {
+      "type": "object",
+      "required": [
+        "clock",
+        "natural_state",
+        "interaction_contexts"
+      ],
+      "properties": {
+        "clock": {
+          "type": "number"
+        },
+        "natural_state": {
+          "type": "object"
+        },
+        "interaction_contexts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "field",
+              "participants",
+              "messages",
+              "status"
+            ],
+            "properties": {
+              "field": {
+                "type": "object",
+                "required": [
+                  "arity",
+                  "co_presence",
+                  "synchrony",
+                  "lifecycle",
+                  "task_binding",
+                  "visibility",
+                  "attention_impact",
+                  "normative_force"
+                ],
+                "properties": {
+                  "arity": {
+                    "type": "string"
+                  },
+                  "co_presence": {
+                    "type": "string"
+                  },
+                  "synchrony": {
+                    "type": "string"
+                  },
+                  "lifecycle": {
+                    "type": "string"
+                  },
+                  "task_binding": {
+                    "type": "string"
+                  },
+                  "visibility": {
+                    "type": "string"
+                  },
+                  "attention_impact": {
+                    "type": "string"
+                  },
+                  "normative_force": {
+                    "type": "string"
+                  }
+                }
+              },
+              "participants": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "messages": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "roles": {
+                "type": "object"
+              },
+              "agenda": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "obligations": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "place_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "agents": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "memory",
+          "control",
+          "capability"
+        ],
+        "properties": {
+          "memory": {
+            "type": "object"
+          },
+          "control": {
+            "type": "object",
+            "required": [
+              "physical_location",
+              "foreground_stack",
+              "current_activity",
+              "baseline_attention_policy",
+              "active_key",
+              "next_wakeup",
+              "last_evolved_at",
+              "energy"
+            ],
+            "properties": {
+              "physical_location": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "foreground_stack": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "current_activity": {
+                "type": "object",
+                "required": [
+                  "preset",
+                  "profile",
+                  "object_ref"
+                ],
+                "properties": {
+                  "preset": {
+                    "type": "string"
+                  },
+                  "profile": {
+                    "type": "object",
+                    "required": [
+                      "mode",
+                      "medium",
+                      "input_openness",
+                      "output_bandwidth",
+                      "interrupt_tolerance",
+                      "energy_profile",
+                      "mobility"
+                    ],
+                    "properties": {
+                      "mode": {
+                        "type": "string"
+                      },
+                      "medium": {
+                        "type": "string"
+                      },
+                      "input_openness": {
+                        "type": "string"
+                      },
+                      "output_bandwidth": {
+                        "type": "string"
+                      },
+                      "interrupt_tolerance": {
+                        "type": "string"
+                      },
+                      "energy_profile": {
+                        "type": "string"
+                      },
+                      "mobility": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "object_ref": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "toolset": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "writeback_policy": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "transition_condition": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "reservation_until": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "resume_token": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "baseline_attention_policy": {
+                "type": "string"
+              },
+              "active_key": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "next_wakeup": {
+                "type": "number"
+              },
+              "last_evolved_at": {
+                "type": "number"
+              },
+              "energy": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              "mood": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              }
+            }
+          },
+          "capability": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "required": [
+        "notification_buffer",
+        "scheduler",
+        "event_log"
+      ],
+      "properties": {
+        "notification_buffer": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "recipient",
+                "priority",
+                "status",
+                "ttl_sec"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "recipient": {
+                  "type": "string"
+                },
+                "priority": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pending",
+                    "surfaced",
+                    "acknowledged",
+                    "consumed",
+                    "expired",
+                    "merged",
+                    "archived"
+                  ]
+                },
+                "ttl_sec": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        },
+        "scheduler": {
+          "type": "object",
+          "properties": {
+            "pending_wakeups": {
+              "type": "object"
+            }
+          }
+        },
+        "writeback_ledger": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "staging_ledger": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "resource_leases": {
+          "type": "object"
+        },
+        "active_obligations": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "event_log": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}
