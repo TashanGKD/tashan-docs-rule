@@ -19,8 +19,61 @@ html,body{height:100%;overflow:hidden;background:#02020c;font-family:'Noto Sans 
 .tb-hint{font-size:.67rem;color:#4e4c52;margin-left:auto;}
 .tb-back{font-size:.7rem;padding:4px 10px;border:1px solid rgba(255,255,255,.12);border-radius:5px;color:#7e7c82;text-decoration:none;transition:.15s;}
 .tb-back:hover{color:#dedad6;border-color:rgba(255,255,255,.3);}
+.tb-guide-btn{
+  font-size:.7rem;padding:4px 11px;border:1px solid rgba(155,110,217,.4);
+  border-radius:5px;color:#c4a8f5;background:rgba(155,110,217,.1);
+  cursor:pointer;transition:.15s;white-space:nowrap;
+}
+.tb-guide-btn:hover{background:rgba(155,110,217,.22);border-color:rgba(155,110,217,.7);}
+.tb-guide-btn.active{background:rgba(155,110,217,.25);border-color:#c4a8f5;}
 .canvas{position:fixed;top:46px;left:0;right:0;bottom:0;}
 svg{width:100%;height:100%;}
+
+/* ── 导读面板 ── */
+.guide-panel{
+  position:fixed;top:54px;left:50%;transform:translateX(-50%);
+  width:min(700px,96vw);
+  background:rgba(6,5,22,.97);backdrop-filter:blur(16px);
+  border:1px solid rgba(155,110,217,.35);border-radius:12px;
+  z-index:150;display:none;flex-direction:column;
+  box-shadow:0 8px 40px rgba(0,0,0,.6);
+  overflow:hidden;
+}
+.guide-panel.show{display:flex;}
+.guide-head{
+  padding:14px 18px 12px;border-bottom:1px solid rgba(255,255,255,.07);
+  display:flex;align-items:center;gap:10px;
+}
+.guide-head-title{font-size:.95rem;font-weight:700;color:#dedad6;flex:1;}
+.guide-close{
+  font-size:1.1rem;color:#7e7c82;background:none;border:none;cursor:pointer;
+  padding:2px 6px;border-radius:4px;transition:.15s;line-height:1;
+}
+.guide-close:hover{color:#dedad6;background:rgba(255,255,255,.08);}
+.guide-body{padding:16px 18px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;max-height:calc(80vh - 60px);}
+.guide-intro{font-size:.82rem;color:rgba(222,218,214,.85);line-height:1.7;}
+.guide-layers{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+@media(max-width:640px){.guide-layers{grid-template-columns:1fr;}}
+.guide-layer{border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;}
+.gl-T {background:rgba(74,158,221,.08);border:1px solid rgba(74,158,221,.22);}
+.gl-PA{background:rgba(155,110,217,.08);border:1px solid rgba(155,110,217,.22);}
+.gl-G {background:rgba(72,170,118,.08);border:1px solid rgba(72,170,118,.22);}
+.guide-layer-title{font-size:.82rem;font-weight:700;}
+.gl-T  .guide-layer-title{color:#8ccaf0;}
+.gl-PA .guide-layer-title{color:#caa8f5;}
+.gl-G  .guide-layer-title{color:#7ecfa0;}
+.guide-layer-sub{font-size:.72rem;color:rgba(222,218,214,.55);font-style:italic;margin-bottom:2px;}
+.guide-layer-desc{font-size:.76rem;color:rgba(222,218,214,.75);line-height:1.6;}
+.guide-usage{
+  background:rgba(255,255,255,.04);border-radius:7px;padding:10px 13px;
+  font-size:.76rem;color:rgba(222,218,214,.7);line-height:1.65;
+}
+.guide-usage strong{color:rgba(222,218,214,.9);}
+.guide-chain{
+  font-size:.74rem;color:rgba(222,218,214,.6);line-height:1.6;
+  padding:8px 12px;border-radius:6px;
+  background:rgba(155,110,217,.06);border:1px solid rgba(155,110,217,.15);
+}
 
 /* 图例 */
 .legend{
@@ -116,8 +169,52 @@ svg{width:100%;height:100%;}
   <span class="tb-title">T-PA-G · 有向关系图谱</span>
   <span class="tb-tag">全节点可见 · 悬停激活链路</span>
   <span class="tb-hint">悬停节点→高亮链路；点击节点→固定右侧详情面板（可滚动）；再次点击或 Esc→解除</span>
+  <button class="tb-guide-btn" id="guide-btn" onclick="toggleGuide()">📖 图谱导读</button>
   <a class="tb-back" href="index.html">← 三列视图</a>
 </header>
+
+<!-- ══ 导读面板 ══ -->
+<div class="guide-panel" id="guide-panel">
+  <div class="guide-head">
+    <span class="guide-head-title">📖 图谱导读 — 这张图在说什么？</span>
+    <button class="guide-close" onclick="toggleGuide()">×</button>
+  </div>
+  <div class="guide-body">
+
+    <p class="guide-intro">这是一张<strong>公理规格图</strong>，展示了一个多智能体系统要长期有效运行，从根本上需要满足哪些条件，以及这些条件之间的逻辑推导关系。图中的每一个节点是一条「条件」，每一条箭头是一条「因为 A 不满足，所以 B 也必然失效」的推导链路。</p>
+
+    <div class="guide-layers">
+      <div class="guide-layer gl-T">
+        <div class="guide-layer-title">🔵 T 层 · 本质目标</div>
+        <div class="guide-layer-sub">Essential Goals · 5个</div>
+        <div class="guide-layer-desc">系统「存在且有意义运行」最根本的条件。对任意多智能体系统成立，与具体实现无关。<br><br>违反 T 层不是「系统跑得不好」，而是「这不再是我们讨论的那类系统」。</div>
+      </div>
+      <div class="guide-layer gl-PA">
+        <div class="guide-layer-title">🟣 PA 层 · 抽象公理</div>
+        <div class="guide-layer-sub">Abstract Axioms · 9条</div>
+        <div class="guide-layer-desc">为了保住 T 目标，系统在结构上至少必须满足的条件。每条公理都可以证明：若不满足，则 T 层某目标在某种条件下必然失效。<br><br>9条公理分5组，形成4对互补关系。</div>
+      </div>
+      <div class="guide-layer gl-G">
+        <div class="guide-layer-title">🟢 G 层 · 当前系统目标</div>
+        <div class="guide-layer-sub">System Goals · G0–G8</div>
+        <div class="guide-layer-desc">PA 公理在本系统架构（world/agents/meta）中的具体化。每个 G 目标下有若干子要求（Gx-Rxxx），全部可向上追溯到 PA 和 T。<br><br>串行链：G0→G1→G2→G3→G4；G5/G6并行；G7 LLM特化；G8工程增强。</div>
+      </div>
+    </div>
+
+    <div class="guide-chain">
+      <strong>推导方向（向右）：</strong> T 层目标 → PA 公理（为保住 T，结构上必须满足）→ G 层要求（PA 在当前架构中如何落地）→ 具体子要求 Gx-Rxxx<br>
+      <strong>追溯方向（向左）：</strong> 任意一条具体要求 → 归属哪个 G 目标 → 具体化哪条 PA → 服务哪个 T 目标
+    </div>
+
+    <div class="guide-usage">
+      <strong>如何使用本图谱：</strong><br>
+      · <strong>悬停</strong>任意节点 → 高亮该条件的完整推导链路，所有关联连线浮现逻辑说明文字<br>
+      · <strong>点击</strong>节点 → 固定右侧详情面板，可滚动查看：完整定义 / 为什么必要 / 违反案例（具体agent场景）/ 数学表达 / 跨域类比<br>
+      · <strong>再次点击 / Esc</strong> → 解除固定，恢复悬停交互
+    </div>
+
+  </div>
+</div>
 
 <div class="canvas">
   <svg id="G" viewBox="0 0 1340 660" preserveAspectRatio="xMidYMid meet">
@@ -164,11 +261,22 @@ svg{width:100%;height:100%;}
     <text x="255" y="240" font-size="130" font-weight="900" fill="#9b6ed9" opacity=".04" font-family="system-ui" letter-spacing="-6">PA</text>
     <text x="528" y="200" font-size="120" font-weight="900" fill="#48aa76" opacity=".035" font-family="system-ui" letter-spacing="-5">G</text>
 
-    <!-- 区域标题 -->
-    <text x="123" y="20" text-anchor="middle" font-size="9.5" font-weight="700" fill="#4a9edd" opacity=".7" letter-spacing=".08em" font-family="system-ui">T 层 · 本质目标</text>
-    <text x="385" y="20" text-anchor="middle" font-size="9.5" font-weight="700" fill="#9b6ed9" opacity=".7" letter-spacing=".08em" font-family="system-ui">PA 层 · 抽象公理</text>
-    <text x="665" y="20" text-anchor="middle" font-size="9.5" font-weight="700" fill="#48aa76" opacity=".7" letter-spacing=".08em" font-family="system-ui">G 层（左：核心串行链）</text>
-    <text x="997" y="20" text-anchor="middle" font-size="9.5" font-weight="700" fill="#48aa76" opacity=".7" letter-spacing=".08em" font-family="system-ui">G 层（右：并行+特化+工程）</text>
+    <!-- 区域标题 + 副标题 -->
+    <!-- T 层 -->
+    <text x="123" y="15" text-anchor="middle" font-size="9" font-weight="700" fill="#4a9edd" opacity=".75" letter-spacing=".07em" font-family="system-ui">T 层 · 本质目标</text>
+    <text x="123" y="27" text-anchor="middle" font-size="7.5" fill="#4a9edd" opacity=".45" font-family="Noto Sans SC, sans-serif">对任意系统成立 · 与实现无关</text>
+
+    <!-- PA 层 -->
+    <text x="385" y="15" text-anchor="middle" font-size="9" font-weight="700" fill="#9b6ed9" opacity=".75" letter-spacing=".07em" font-family="system-ui">PA 层 · 抽象公理</text>
+    <text x="385" y="27" text-anchor="middle" font-size="7.5" fill="#9b6ed9" opacity=".45" font-family="Noto Sans SC, sans-serif">为保住 T，结构上必须满足的约束</text>
+
+    <!-- G 层左列 -->
+    <text x="665" y="15" text-anchor="middle" font-size="9" font-weight="700" fill="#48aa76" opacity=".75" letter-spacing=".07em" font-family="system-ui">G 层 · 核心串行链</text>
+    <text x="665" y="27" text-anchor="middle" font-size="7.5" fill="#48aa76" opacity=".45" font-family="Noto Sans SC, sans-serif">G0→G1→G2→G3→G4 · PA 在粒子体系中的具体化</text>
+
+    <!-- G 层右列 -->
+    <text x="997" y="15" text-anchor="middle" font-size="9" font-weight="700" fill="#48aa76" opacity=".75" letter-spacing=".07em" font-family="system-ui">G 层 · 并行 / 特化 / 工程</text>
+    <text x="997" y="27" text-anchor="middle" font-size="7.5" fill="#48aa76" opacity=".45" font-family="Noto Sans SC, sans-serif">G5/G6 并行目标 · G7 LLM特化 · G8 工程增强</text>
 
     <g id="edge-g"></g>
     <g id="label-g"></g>
@@ -178,6 +286,14 @@ svg{width:100%;height:100%;}
 
 <!-- 图例 -->
 <div class="legend">
+  <div class="lg-item" style="border-right:1px solid rgba(255,255,255,.08);padding-right:14px;margin-right:4px;">
+    <span style="color:#8ccaf0;font-weight:700">🔵 T</span>
+    <span style="color:#4e4c52">本质目标</span>
+    <span style="color:#8ccaf0;font-weight:700;margin-left:8px">🟣 PA</span>
+    <span style="color:#4e4c52">抽象公理</span>
+    <span style="color:#7ecfa0;font-weight:700;margin-left:8px">🟢 G</span>
+    <span style="color:#4e4c52">系统目标</span>
+  </div>
   <div class="lg-item"><div class="lg-line" style="background:rgba(74,158,221,.7)"></div><span>T→PA 公理化</span></div>
   <div class="lg-item"><div class="lg-line" style="background:rgba(155,110,217,.7)"></div><span>PA→G 具体化</span></div>
   <div class="lg-item"><div class="lg-line" style="background:rgba(74,158,221,.5);border-top:1px dashed rgba(74,158,221,.6)"></div><span>T 层内依赖</span></div>
@@ -201,6 +317,23 @@ svg{width:100%;height:100%;}
 
 <script src="data.js"></script>
 <script>
+/* ══════════════════════════════════════════════════
+   导读面板切换
+══════════════════════════════════════════════════ */
+function toggleGuide(){
+  const panel=document.getElementById('guide-panel');
+  const btn=document.getElementById('guide-btn');
+  const isOpen=panel.classList.toggle('show');
+  btn.classList.toggle('active',isOpen);
+}
+// 点击 SVG 区域时关闭导读面板（如果已打开）
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('G')?.addEventListener('click',()=>{
+    document.getElementById('guide-panel')?.classList.remove('show');
+    document.getElementById('guide-btn')?.classList.remove('active');
+  });
+});
+
 /* ══════════════════════════════════════════════════
    节点定义
 ══════════════════════════════════════════════════ */
